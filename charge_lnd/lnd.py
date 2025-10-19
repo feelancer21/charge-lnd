@@ -33,11 +33,13 @@ class ChannelMetrics(SimpleNamespace):
     count_pending_htlcs: int = 0
     next_pending_htlc_expiry: Optional[int] = None
     
-    def local_balance_total(self):
-        return self.local_balance_settled + self.local_balance_unsettled + self.local_commit_fee
+    def local_balance_total(self, settle_unsettled):
+        unsettled = self.remote_balance_unsettled if settle_unsettled else self.local_balance_unsettled
+        return self.local_balance_settled + unsettled + self.local_commit_fee
     
-    def remote_balance_total(self):
-        return self.remote_balance_settled + self.remote_balance_unsettled + self.remote_commit_fee
+    def remote_balance_total(self, settle_unsettled):
+        unsettled = self.local_balance_unsettled if settle_unsettled else self.remote_balance_unsettled
+        return self.remote_balance_settled + unsettled + self.remote_commit_fee
 
 
 class PeerMetrics(SimpleNamespace):
@@ -58,32 +60,39 @@ class PeerMetrics(SimpleNamespace):
     remote_inactive_balance_unsettled: int = 0
     remote_inactive_commit_fee: int = 0
     
-    def local_active_balance_total(self):
+    def local_active_balance_total(self, settle_unsettled):
+        unsettled = self.remote_active_balance_unsettled if settle_unsettled else self.local_active_balance_unsettled
         return (self.local_active_balance_settled +
-                self.local_active_balance_unsettled +
+                unsettled +
                 self.local_active_commit_fee)
-    
-    def remote_active_balance_total(self):
+
+    def remote_active_balance_total(self, settle_unsettled):
+        unsettled = self.local_active_balance_unsettled if settle_unsettled else self.remote_active_balance_unsettled
         return (self.remote_active_balance_settled +
-                self.remote_active_balance_unsettled +
-                self.remote_active_commit_fee)
-    
-    def local_inactive_balance_total(self):
+                unsettled +
+                self.remote_active_commit_fee)      
+
+
+    def local_inactive_balance_total(self, settle_unsettled):
+        unsettled = self.remote_inactive_balance_unsettled if settle_unsettled else self.local_inactive_balance_unsettled
         return (self.local_inactive_balance_settled +
-                self.local_inactive_balance_unsettled +
+                unsettled +
                 self.local_inactive_commit_fee)
-    
-    def remote_inactive_balance_total(self):
+
+    def remote_inactive_balance_total(self, settle_unsettled):
+        unsettled = self.local_inactive_balance_unsettled if settle_unsettled else self.remote_inactive_balance_unsettled
         return (self.remote_inactive_balance_settled +
-                self.remote_inactive_balance_unsettled +
+                unsettled +
                 self.remote_inactive_commit_fee)
     
-    def active_balance_total(self):
-        return self.local_active_balance_total() + self.remote_active_balance_total()
-    
-    def inactive_balance_total(self):
-        return self.local_inactive_balance_total() + self.remote_inactive_balance_total()
-    
+    def active_balance_total(self, settle_unsettled):
+        return (self.local_active_balance_total(settle_unsettled) + 
+                self.remote_active_balance_total(settle_unsettled))
+
+    def inactive_balance_total(self, settle_unsettled):
+        return (self.local_inactive_balance_total(settle_unsettled) + 
+                self.remote_inactive_balance_total(settle_unsettled))
+
 
 def channel_metrics(channel):        
     return ChannelMetrics(

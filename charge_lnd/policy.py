@@ -140,7 +140,7 @@ class Policies:
                                 'min_shared_capacity_inactive','max_shared_capacity_inactive',
                                 'min_shared_ratio_active', 'max_shared_ratio_active',
                                 'min_shared_ratio_inactive', 'max_shared_ratio_inactive',
-                                'min_shared_ratio', 'max_shared_ratio']
+                                'min_shared_ratio', 'max_shared_ratio', 'settle_unsettled']
         accepted = ['id',
                     'min_channels','max_channels',
                     'min_capacity','max_capacity'
@@ -182,10 +182,11 @@ class Policies:
             channels_active = metrics.channels_active
             channels_inactive = metrics.channels_inactive
             
-            local_active_balance = metrics.local_active_balance_total()
-            local_inactive_balance = metrics.local_inactive_balance_total()
-            active_total = metrics.active_balance_total()
-            inactive_total = metrics.inactive_balance_total()
+            settle_unsettled = config.getboolean('node.settle_unsettled', False)
+            local_active_balance = metrics.local_active_balance_total(settle_unsettled)
+            local_inactive_balance = metrics.local_inactive_balance_total(settle_unsettled)
+            active_total = metrics.active_balance_total(settle_unsettled)
+            inactive_total = metrics.inactive_balance_total(settle_unsettled)
             
             all_total = active_total + inactive_total
             ratio_all = (local_active_balance + local_inactive_balance) / all_total
@@ -261,7 +262,7 @@ class Policies:
                     'max_htlcs_ratio', 'min_htlcs_ratio',
                     'max_sats_ratio', 'min_sats_ratio',
                     'min_count_pending_htlcs', 'max_count_pending_htlcs',
-                    'disabled'
+                    'disabled','settle_unsettled'
                     ] + pending_htlcs_props
         for key in config.keys():
             if key.split(".")[0] == 'chan' and key.split(".")[1] not in accepted:
@@ -284,10 +285,11 @@ class Policies:
             return False
         if 'chan.private' in config and not channel.private == config.getboolean('chan.private'):
             return False
-
         metrics = self.lnd.get_chan_metrics(channel.chan_id)
-        local_balance = metrics.local_balance_total()
-        remote_balance = metrics.remote_balance_total()
+        
+        settle_unsettled = config.getboolean('chan.settle_unsettled', False)
+        local_balance = metrics.local_balance_total(settle_unsettled)
+        remote_balance = metrics.remote_balance_total(settle_unsettled)
 
         ratio = local_balance/(local_balance + remote_balance)
         if 'chan.max_ratio' in config and not config.getfloat('chan.max_ratio') >= ratio:
