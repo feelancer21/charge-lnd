@@ -14,9 +14,11 @@ from .strategy import is_defined
 from .config import Config
 from .circuitbreaker import Circuitbreaker
 import charge_lnd.fmt as fmt
+import time
 
 def debug(message):
     sys.stderr.write(message + "\n")
+
 
 def main():
     argument_parser = get_argument_parser()
@@ -25,6 +27,16 @@ def main():
     if arguments.very_verbose:
         arguments.verbose = True
 
+    if arguments.server_mode != "0":
+        interval = int(arguments.server_mode)
+        
+        while True:
+            run(arguments)
+            time.sleep(interval)
+    else:
+        run(arguments)
+
+def run(arguments):
     if not os.path.exists(arguments.config):
         debug("Config file not found")
         return False
@@ -327,6 +339,11 @@ def get_argument_parser():
     parser.add_argument("-c", "--config",
                         required=True,
                         help="path to config file")
+    parser.add_argument( "--server-mode",
+                        default="0",
+                        dest="server_mode",
+                        help="server mode (default: 0): 0 is normal mode, other number is the polling interval in seconds")
+
     return parser
 
 
